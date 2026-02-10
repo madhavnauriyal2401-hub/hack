@@ -1,6 +1,6 @@
 {
-  "name": "Copy of Raksha Sutra - Elder News Guardian",
-  "description": "A caring, elder-friendly app to verify news and analyze videos for authenticity using Gemini's advanced reasoning and real-time search grounding.",
+  "name": "Raksha Sutra - Your Digital Guardian",
+  "description": "A comprehensive security suite for elders, protecting against fake news, phishing emails, scam websites, and payment frauds with caring AI guidance.",
   "requestFramePermissions": [
     "camera",
     "microphone"

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { RiskLevel } from '../types';
@@ -16,10 +15,10 @@ const Gauge: React.FC<GaugeProps> = ({ score, level }) => {
 
   const getColor = (lvl: RiskLevel) => {
     switch (lvl) {
-      case RiskLevel.LOW: return '#10b981'; // Softer Emerald
-      case RiskLevel.MEDIUM: return '#f59e0b'; // Amber
-      case RiskLevel.HIGH: return '#dc2626'; // Red
-      default: return '#94a3b8';
+      case RiskLevel.LOW: return '#059669'; // Emerald 600
+      case RiskLevel.MEDIUM: return '#d97706'; // Amber 600
+      case RiskLevel.HIGH: return '#dc2626'; // Red 600
+      default: return '#64748b';
     }
   };
 
@@ -41,13 +40,13 @@ const Gauge: React.FC<GaugeProps> = ({ score, level }) => {
             dataKey="value"
           >
             <Cell fill={color} stroke="none" />
-            <Cell fill="#f1f5f9" stroke="none" />
+            <Cell fill="#fee2e2" stroke="none" />
           </Pie>
         </PieChart>
       </ResponsiveContainer>
       <div className="absolute top-[60%] flex flex-col items-center">
-        <span className="text-3xl font-bold" style={{ color }}>{score}%</span>
-        <span className="text-sm font-bold uppercase tracking-widest text-slate-400">Caution Level</span>
+        <span className="text-3xl font-black" style={{ color }}>{score}%</span>
+        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Threat Risk</span>
       </div>
     </div>
   );
