@@ -867,7 +867,7 @@ const App: React.FC = () => {
              <Radio className="w-7 h-7" />
            </button>
            <button onClick={() => setCurrentModule(SecurityModule.VICTIM_HELP)} className={`p-2 rounded-lg transition-all ${currentModule === SecurityModule.VICTIM_HELP ? 'bg-red-600 text-white shadow-md' : 'text-slate-400 hover:bg-red-50'}`}>
-             <HelpCircle className="w-7 h-7" />
+             <HelpIcon className="w-7 h-7" />
            </button>
            <button onClick={() => setCurrentModule(SecurityModule.GUIDELINES)} className={`p-2 rounded-lg transition-all ${currentModule === SecurityModule.GUIDELINES ? 'bg-red-600 text-white shadow-md' : 'text-slate-400 hover:bg-red-50'}`}>
              <BookOpen className="w-7 h-7" />
