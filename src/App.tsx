@@ -76,8 +76,12 @@ const App: React.FC = () => {
     try {
       const result = await analyzeSecurityContent(currentModule, inputText, selectedImage || undefined);
       setAnalysisState({ isAnalyzing: false, result, error: null });
-    } catch (err) {
-      setAnalysisState({ isAnalyzing: false, result: null, error: "Sorry, I had trouble checking that. Let's try again." });
+    } catch (err: any) {
+      console.error("Analysis Error:", err);
+      const errorMessage = err?.message?.includes("API Key") 
+        ? "Access Denied: Please ensure your Gemini API Key is configured correctly in the settings."
+        : "Sorry, I had trouble checking that. The AI service may be temporarily unavailable or the image format is unsupported.";
+      setAnalysisState({ isAnalyzing: false, result: null, error: errorMessage });
     }
   };
 

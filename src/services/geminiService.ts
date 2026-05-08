@@ -1,44 +1,49 @@
 /// <reference types="vite/client" />
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, SecurityModule, FeedItem } from "@/types";
+import { AnalysisResult, SecurityModule, FeedItem, GroundingSource } from "@/types";
 
 const getApiKey = () => {
-  // Try everything: VITE_ prefixed (Vite standard), process.env (Vite define), or normal import.meta.env
-  const key = import.meta.env.VITE_GEMINI_API_KEY || 
-              (typeof process !== 'undefined' ? process.env.VITE_GEMINI_API_KEY : null) ||
-              (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : null) ||
-              import.meta.env.VITE_API_KEY;
-  
-  if (!key || key === "null" || key === "undefined") {
-    console.warn("Gemini API Key missing. Please set VITE_GEMINI_API_KEY in your Netlify Environment Variables.");
-  }
-  return key && key !== "null" && key !== "undefined" ? key : "";
+  // Use what's provided by the environment, preferring GEMINI_API_KEY
+  return process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || "";
 };
 
 export const generateSimulatedFeed = async (): Promise<FeedItem[]> => {
-  const ai = new GoogleGenAI({ apiKey: getApiKey() });
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: "Generate 5 simulated social media posts (Twitter/WhatsApp style) about trending news in India. Mix real news with 2-3 pieces of subtle misinformation or fake news. Return as JSON.",
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            id: { type: Type.STRING },
-            author: { type: Type.STRING },
-            content: { type: Type.STRING },
-            timestamp: { type: Type.STRING },
-            platform: { type: Type.STRING, enum: ["Twitter", "Facebook", "WhatsApp"] }
-          },
-          required: ["id", "author", "content", "timestamp", "platform"]
+  try {
+    const key = getApiKey();
+    if (!key) {
+      console.warn("Gemini API Key missing.");
+      return [];
+    }
+
+    const ai = new GoogleGenAI({ apiKey: key });
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: "Generate 5 simulated social media posts (Twitter/WhatsApp style) about trending news in India. Mix real news with 2-3 pieces of subtle misinformation or fake news. Return as JSON.",
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              author: { type: Type.STRING },
+              content: { type: Type.STRING },
+              timestamp: { type: Type.STRING },
+              platform: { type: Type.STRING, enum: ["Twitter", "Facebook", "WhatsApp"] }
+            },
+            required: ["id", "author", "content", "timestamp", "platform"]
+          }
         }
       }
-    }
-  });
-  return JSON.parse(response.text || "[]");
+    });
+
+    const text = response.text || "[]";
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Error generating feed:", error);
+    return [];
+  }
 };
 
 export const analyzeSecurityContent = async (
@@ -46,7 +51,12 @@ export const analyzeSecurityContent = async (
   text?: string,
   imageUrl?: string
 ): Promise<AnalysisResult> => {
-  const ai = new GoogleGenAI({ apiKey: getApiKey() });
+  const key = getApiKey();
+  if (!key) {
+    throw new Error("Gemini API Key is missing. Please configure it in your Netlify or AI Studio environment.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey: key });
   
   let systemInstruction = `
     You are "Raksha Sutra," a respectful, caring, and wise digital guardian for Indian elders. 
@@ -58,37 +68,32 @@ export const analyzeSecurityContent = async (
   
   switch (module) {
     case SecurityModule.NEWS:
-      specificTask = "Analyze this news claim or video description for truth. Check for AI manipulation or fake rumors prevalent in India.";
+      specificTask = "Analyze this news claim for truth. Check for AI manipulation or fake rumors prevalent in India.";
       break;
     case SecurityModule.EMAIL:
-      specificTask = "Analyze this email for phishing. Look for fake bank warnings, tax department impersonation, or suspicious attachments.";
+      specificTask = "Analyze this email for phishing. Look for fake bank warnings or suspicious attachments.";
       break;
     case SecurityModule.SMS:
-      specificTask = "Analyze this SMS or WhatsApp message. Check for fake job offers, electricity bill threats, or prize winnings (KBC scams).";
+      specificTask = "Analyze this SMS/WhatsApp message. Check for fake job offers or prize scams.";
       break;
     case SecurityModule.URL:
-      specificTask = "Analyze this link. Check if it's a fake bank site (phishing), a dangerous download, or a scam portal.";
+      specificTask = "Analyze this link for phishing or malware.";
       break;
     case SecurityModule.PAYMENT:
-      specificTask = "Analyze this payment request or scenario. Is it a QR code scam, an 'overpayment' scam, or a fake emergency request from a relative?";
+      specificTask = "Analyze this payment request. Is it a QR scam or fake emergency?";
       break;
-    case SecurityModule.MEETING_LINK:
-      specificTask = "Analyze this Google Meet, Zoom, or Microsoft Teams link. Check if it's a credential harvester, a suspicious redirect, or a platform for tech support scams.";
-      break;
-    case SecurityModule.JOB_FRAUD:
-      specificTask = "Analyze this job offer or recruitment message. Check for 'work from home' scams, requests for registration fees, or fake company hiring.";
-      break;
+    default:
+      specificTask = "Analyze this for digital security risks in the Indian context.";
   }
 
   systemInstruction += `\n\nTask: ${specificTask}
-    If the risk is HIGH, provide a very warm 'careMessage' in a respectful and protective manner for a senior citizen. 
-    Avoid using kinship terms like 'Dada' or 'Dadi' in your response. Use simple, clear English. 
-    Provide a riskScore from 0 to 100. Always use Google Search to verify recent fraud trends in India.
+    If the risk is HIGH, provide a caring message for a senior. Avoid terms like 'Dada'/'Dadi'. 
+    Risk score 0-100. Use Google Search to verify trends.
   `;
 
   const prompt = text 
-    ? `Dear Raksha Sutra, please analyze this for me: "${text}"`
-    : `Dear Raksha Sutra, please look at this image and tell me if it's safe.`;
+    ? `Analyze this: "${text}"`
+    : `Please analyze this image for safety.`;
 
   const contents: any = { parts: [] };
   if (text) contents.parts.push({ text: prompt });
@@ -100,38 +105,58 @@ export const analyzeSecurityContent = async (
     if (!text) contents.parts.push({ text: prompt });
   }
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: contents,
-    config: {
-      systemInstruction,
-      tools: [{ googleSearch: {} }],
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          headline: { type: Type.STRING },
-          summary: { type: Type.STRING },
-          riskFactor: { type: Type.STRING, enum: ["LOW", "MEDIUM", "HIGH"] },
-          riskScore: { type: Type.NUMBER },
-          sourceCredibility: { type: Type.NUMBER, description: "A score from 0 to 100 indicating the reliability of the source." },
-          reasons: { type: Type.ARRAY, items: { type: Type.STRING } },
-          verdict: { type: Type.STRING },
-          careMessage: { type: Type.STRING }
-        },
-        required: ["headline", "summary", "riskFactor", "riskScore", "reasons", "verdict", "careMessage"]
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: contents,
+      config: {
+        systemInstruction,
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            headline: { type: Type.STRING },
+            summary: { type: Type.STRING },
+            riskFactor: { type: Type.STRING, enum: ["LOW", "MEDIUM", "HIGH"] },
+            riskScore: { type: Type.NUMBER },
+            sourceCredibility: { type: Type.NUMBER },
+            reasons: { type: Type.ARRAY, items: { type: Type.STRING } },
+            verdict: { type: Type.STRING },
+            careMessage: { type: Type.STRING }
+          },
+          required: ["headline", "summary", "riskFactor", "riskScore", "reasons", "verdict", "careMessage"]
+        }
       }
+    });
+
+    const outputText = response.text;
+    if (!outputText) {
+      throw new Error("No response text from AI.");
     }
-  });
 
-  const jsonResult = JSON.parse(response.text || "{}");
-  const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-  const sources = groundingChunks
-    .filter((chunk: any) => chunk.web)
-    .map((chunk: any) => ({
-      title: chunk.web.title,
-      uri: chunk.web.uri
-    }));
+    const jsonResult = JSON.parse(outputText);
+    
+    // Improved grounding extraction
+    let sources: GroundingSource[] = [];
+    const candidate = (response as any).candidates?.[0];
+    if (candidate?.groundingMetadata?.groundingChunks) {
+      sources = candidate.groundingMetadata.groundingChunks
+        .filter((chunk: any) => chunk?.web)
+        .map((chunk: any) => ({
+          title: chunk.web.title || "External Source",
+          uri: chunk.web.uri || "#"
+        }))
+        .slice(0, 3);
+    }
 
-  return { ...jsonResult, sources: sources.slice(0, 3) };
+    return { ...jsonResult, sources };
+  } catch (error: any) {
+    console.error("Gemini Analysis Failure:", error);
+    // Re-throw with more context if it's an API error
+    if (error?.message?.includes("API key not valid")) {
+      throw new Error("Invalid API Key. Please check your configuration.");
+    }
+    throw error;
+  }
 };
