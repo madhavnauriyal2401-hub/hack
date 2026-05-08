@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { RiskLevel } from '../types';
 
@@ -38,16 +39,23 @@ const Gauge: React.FC<GaugeProps> = ({ score, level }) => {
             outerRadius={95}
             paddingAngle={0}
             dataKey="value"
+            animationDuration={1500}
+            animationBegin={300}
           >
             <Cell fill={color} stroke="none" />
             <Cell fill="#fee2e2" stroke="none" />
           </Pie>
         </PieChart>
       </ResponsiveContainer>
-      <div className="absolute top-[60%] flex flex-col items-center">
+      <motion.div 
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.5, type: 'spring' }}
+        className="absolute top-[60%] flex flex-col items-center"
+      >
         <span className="text-3xl font-black" style={{ color }}>{score}%</span>
         <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Threat Risk</span>
-      </div>
+      </motion.div>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { analyzeSecurityContent, generateSimulatedFeed } from './services/geminiService';
 import { AnalysisState, SecurityModule, RiskLevel, FraudTypeGuide, FeedItem } from './types';
 import AnalysisView from './components/AnalysisView';
@@ -119,6 +120,16 @@ const App: React.FC = () => {
     setFeedInput('');
   };
 
+  const getModuleInfo = (mod: SecurityModule) => {
+    return analysisButtons.find(b => b.id === mod) || {
+      id: mod,
+      label: mod === SecurityModule.VICTIM_HELP ? "Emergency Help" : "Analyzing",
+      icon: <ShieldCheck className="w-10 h-10" />,
+      color: "bg-red-600",
+      desc: "Getting you help immediately"
+    };
+  };
+
   const verifyFeedItem = async (id: string) => {
     const item = feed.find(f => f.id === id);
     if (!item) return;
@@ -210,8 +221,16 @@ const App: React.FC = () => {
       )}
 
       <main className="max-w-5xl mx-auto px-4 mt-8">
-        {currentModule === SecurityModule.HOME ? (
-          <div className="space-y-12 animate-in fade-in duration-500">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentModule + (analysisState.result ? '-result' : '')}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            {currentModule === SecurityModule.HOME ? (
+              <div className="space-y-12 pb-20">
             <header className="relative overflow-hidden rounded-[2.5rem] hero-gradient text-white p-10 md:p-14 shadow-xl">
               <div className="relative z-10 max-w-2xl">
                 <span className="bg-white/20 backdrop-blur-md px-4 py-1 rounded-full inline-block mb-4 text-xs font-bold uppercase tracking-wider">
@@ -708,10 +727,65 @@ const App: React.FC = () => {
               </div>
             )}
           </div>
+        ) : currentModule === SecurityModule.VICTIM_HELP ? (
+          <div className="space-y-10 pb-24">
+            <div className="bg-white rounded-[3.5rem] p-10 md:p-14 shadow-lg border border-slate-100 relative overflow-hidden">
+               <button onClick={goHome} className="absolute top-8 right-8 bg-slate-50 p-4 rounded-full text-slate-400 hover:text-red-700 transition-all border border-slate-100">
+                 <ChevronLeft className="w-8 h-8" />
+               </button>
+               <div className="text-center mb-12">
+                 <div className="bg-red-600 w-24 h-24 rounded-full flex items-center justify-center text-white mx-auto mb-6 shadow-xl animate-pulse">
+                   <Siren className="w-12 h-12" />
+                 </div>
+                 <h2 className="text-5xl font-black text-slate-800 tracking-tight">Don't Panic. You are Safe.</h2>
+                 <p className="text-xl text-slate-500 mt-4 font-bold">If you have shared money or sensitive details, follow these steps immediately.</p>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="bg-red-50 p-10 rounded-[3rem] border-2 border-red-100">
+                   <h3 className="text-2xl font-black text-red-700 mb-6 flex items-center gap-3">
+                     <PhoneCall className="w-8 h-8" />
+                     1. Call 1930 NOW
+                   </h3>
+                   <p className="text-lg text-slate-700 font-medium leading-relaxed">
+                     This is India's National Cyber Crime Helpline. Call immediately to freeze your bank transactions.
+                   </p>
+                 </div>
+                 <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-200">
+                   <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3">
+                     <AlertTriangle className="w-8 h-8 text-amber-600" />
+                     2. Lock Your Accounts
+                   </h3>
+                   <p className="text-lg text-slate-700 font-medium leading-relaxed">
+                     Use your official banking app to 'Block' your Credit/Debit cards and your UPI ID.
+                   </p>
+                 </div>
+               </div>
+
+               <div className="mt-12 bg-white border-2 border-slate-100 p-10 rounded-[3rem] shadow-sm">
+                 <h3 className="text-2xl font-black text-slate-800 mb-8 underline decoration-red-500 underline-offset-8">Official Reporting Link</h3>
+                 <a 
+                  href="https://cybercrime.gov.in" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-8 bg-red-600 text-white rounded-[2.5rem] shadow-lg hover:bg-red-700 transition-all group"
+                 >
+                   <div className="flex items-center gap-6">
+                     <Globe className="w-10 h-10" />
+                     <div>
+                       <h4 className="text-2xl font-black">CyberCrime.gov.in</h4>
+                       <p className="font-bold opacity-80">Official Govt of India Portal</p>
+                     </div>
+                   </div>
+                   <ExternalLink className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                 </a>
+               </div>
+            </div>
+          </div>
         ) : analysisState.result ? (
           <AnalysisView result={analysisState.result} onReset={resetAll} />
         ) : (
-          <div className="animate-in slide-in-from-bottom-5 duration-300">
+          <div className="animate-in slide-in-from-bottom-5 duration-300 pb-20">
             <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-xl border border-slate-200 relative overflow-hidden">
               <button onClick={goHome} className="absolute top-8 right-8 bg-slate-100 p-2 rounded-lg text-slate-400 hover:text-red-600 transition-all">
                 <ChevronLeft className="w-6 h-6" />
@@ -719,14 +793,14 @@ const App: React.FC = () => {
 
               <div className="mb-10">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className={`${analysisButtons.find(b => b.id === currentModule)?.color || 'bg-red-600'} p-4 rounded-xl text-white shadow-sm`}>
-                    {analysisButtons.find(b => b.id === currentModule)?.icon || <ShieldCheck className="w-8 h-8" />}
+                  <div className={`${getModuleInfo(currentModule).color} p-4 rounded-xl text-white shadow-sm`}>
+                    {getModuleInfo(currentModule).icon}
                   </div>
                   <h3 className="text-3xl font-bold text-slate-800">
-                    {analysisButtons.find(b => b.id === currentModule)?.label || "Analyzing" }
+                    {getModuleInfo(currentModule).label}
                   </h3>
                 </div>
-                <p className="text-lg text-slate-500 font-medium">Please share the details you want me to check for you.</p>
+                <p className="text-lg text-slate-500 font-medium">{getModuleInfo(currentModule).desc}</p>
               </div>
 
               <div className="space-y-8">
@@ -780,6 +854,8 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+        </motion.div>
+      </AnimatePresence>
       </main>
 
       <footer className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-lg z-50">

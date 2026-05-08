@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { AnalysisResult, RiskLevel } from '../types';
 import Gauge from './Gauge';
 import { Heart, AlertCircle, CheckCircle2, ExternalLink, RefreshCw, Info, ShieldAlert, ShieldCheck, Globe } from 'lucide-react';
@@ -21,7 +22,11 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset }) => {
   const { icon, bg, border } = getHeaderStyle();
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-8 pb-20"
+    >
       {/* Care Message */}
       {result.riskFactor !== RiskLevel.LOW && (
         <div className="bg-red-700 p-8 rounded-3xl shadow-lg text-white flex gap-6 items-start relative overflow-hidden">
@@ -125,7 +130,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset }) => {
         <RefreshCw className="w-6 h-6" />
         Analyze Something Else
       </button>
-    </div>
+    </motion.div>
   );
 };
 
