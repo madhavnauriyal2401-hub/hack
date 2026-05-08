@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { analyzeSecurityContent } from './services/geminiService';
-import { AnalysisState, SecurityModule, RiskLevel, FraudTypeGuide } from './types';
+import React, { useState, useRef, useEffect } from 'react';
+import { analyzeSecurityContent, generateSimulatedFeed } from './services/geminiService';
+import { AnalysisState, SecurityModule, RiskLevel, FraudTypeGuide, FeedItem } from './types';
 import AnalysisView from './components/AnalysisView';
 import { 
   Heart, Newspaper, Mail, Link as LinkIcon, CreditCard, 
@@ -10,7 +10,7 @@ import {
   Smartphone, Wallet, Lock, HelpCircle, Video, Briefcase,
   Users, Siren, CheckCircle, HelpCircle as HelpIcon,
   Menu, X, Book, Sparkles, Key, Cpu, Shield, Award, Landmark, Gavel,
-  Radio, Flame, Megaphone
+  Radio, Flame, Megaphone, CheckCircle2, RefreshCw
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -23,6 +23,9 @@ const App: React.FC = () => {
     result: null,
     error: null,
   });
+  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [isFeedLoading, setIsFeedLoading] = useState(false);
+  const [feedInput, setFeedInput] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -89,11 +92,54 @@ const App: React.FC = () => {
     setCurrentModule(SecurityModule.HOME);
   };
 
+  const loadFeed = async () => {
+    setIsFeedLoading(true);
+    try {
+      const newFeed = await generateSimulatedFeed();
+      setFeed(newFeed);
+    } catch (err) {
+      console.error("Failed to load feed", err);
+    } finally {
+      setIsFeedLoading(false);
+    }
+  };
+
+  const handleManualPost = () => {
+    if (!feedInput.trim()) return;
+    
+    const newItem: FeedItem = {
+      id: Date.now().toString(),
+      author: "You (User)",
+      content: feedInput,
+      timestamp: "Just now",
+      platform: 'Twitter',
+    };
+    
+    setFeed(prev => [newItem, ...prev]);
+    setFeedInput('');
+  };
+
+  const verifyFeedItem = async (id: string) => {
+    const item = feed.find(f => f.id === id);
+    if (!item) return;
+
+    // Set loading state for this specific item
+    setFeed(prev => prev.map(f => f.id === id ? { ...f, isVerified: true } : f));
+    
+    try {
+      const result = await analyzeSecurityContent(SecurityModule.NEWS, item.content);
+      setFeed(prev => prev.map(f => f.id === id ? { ...f, analysis: result } : f));
+    } catch (err) {
+      console.error("Failed to verify item", err);
+    }
+  };
+
   const analysisButtons = [
     { id: SecurityModule.NEWS, label: "Verify News", icon: <Newspaper className="w-10 h-10" />, color: "bg-red-600", desc: "Is this viral news real?" },
     { id: SecurityModule.PAYMENT, label: "Scan QR/Bill", icon: <CreditCard className="w-10 h-10" />, color: "bg-rose-600", desc: "Is this payment safe?" },
     { id: SecurityModule.MEETING_LINK, label: "Meeting Link", icon: <Video className="w-10 h-10" />, color: "bg-red-800", desc: "Check Zoom/Meet safety" },
     { id: SecurityModule.JOB_FRAUD, label: "Job Offer", icon: <Briefcase className="w-10 h-10" />, color: "bg-slate-700", desc: "Verify work offers" },
+    { id: SecurityModule.PITCH_DECK, label: "Fake News AI", icon: <Sparkles className="w-10 h-10" />, color: "bg-indigo-600", desc: "AI Detection Prototype" },
   ];
 
   return (
@@ -183,6 +229,10 @@ const App: React.FC = () => {
                   <button onClick={() => setCurrentModule(SecurityModule.AWARENESS_HUB)} className="bg-red-950/20 backdrop-blur-sm border border-white/30 px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/20 transition-all flex items-center gap-2">
                     <Radio className="w-5 h-5" />
                     Latest Alerts
+                  </button>
+                  <button onClick={() => { setCurrentModule(SecurityModule.FEED_DEMO); loadFeed(); }} className="bg-indigo-600/40 backdrop-blur-sm border border-indigo-300/50 px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-600/60 transition-all flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    Live AI Demo
                   </button>
                 </div>
               </div>
@@ -378,6 +428,285 @@ const App: React.FC = () => {
                  </div>
                ))}
              </div>
+          </div>
+        ) : currentModule === SecurityModule.PITCH_DECK ? (
+          <div className="animate-in slide-in-from-bottom-10 duration-500 space-y-10 pb-24">
+            <div className="bg-white rounded-[3.5rem] p-10 md:p-14 shadow-lg border border-slate-100 relative overflow-hidden">
+              <button onClick={goHome} className="absolute top-8 right-8 bg-slate-50 p-4 rounded-full text-slate-400 hover:text-red-700 transition-all border border-slate-100">
+                <ChevronLeft className="w-8 h-8" />
+              </button>
+              
+              <div className="text-center mb-16">
+                <span className="bg-indigo-50 text-indigo-700 px-6 py-2 rounded-full font-black text-sm uppercase tracking-widest mb-6 inline-block">Round 1 Submission</span>
+                <h3 className="text-5xl font-black text-slate-700">Fake News Detection System</h3>
+                <p className="text-xl text-slate-500 mt-4 font-medium">AI-Powered Verification for a Safer Digital Bharat</p>
+              </div>
+
+              <div className="space-y-16">
+                {/* Problem Understanding */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-red-100 text-red-600 rounded-2xl">
+                      <AlertOctagon className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-3xl font-black text-slate-800">Problem Understanding</h4>
+                  </div>
+                  <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+                    <p className="text-lg text-slate-600 leading-relaxed">
+                      Social media platforms enable the rapid spread of misinformation. False information influences public opinion, creates panic, and misleads people during critical situations like elections or health emergencies. Elders are particularly vulnerable to these "viral" rumors.
+                    </p>
+                  </div>
+                </section>
+
+                {/* Proposed Solution */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-green-100 text-green-600 rounded-2xl">
+                      <CheckCircle className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-3xl font-black text-slate-800">Proposed Solution</h4>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
+                      <h5 className="text-xl font-bold text-slate-800 mb-3">NLP Analysis</h5>
+                      <p className="text-slate-500">Advanced text analysis to detect misleading patterns, sensationalism, and linguistic markers of fake news.</p>
+                    </div>
+                    <div className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
+                      <h5 className="text-xl font-bold text-slate-800 mb-3">Source Credibility</h5>
+                      <p className="text-slate-500">Automated scoring of news sources based on historical accuracy, domain authority, and cross-referencing.</p>
+                    </div>
+                    <div className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
+                      <h5 className="text-xl font-bold text-slate-800 mb-3">Real-time Alerts</h5>
+                      <p className="text-slate-500">Push notifications and visual cues for suspicious content detected in social media feeds.</p>
+                    </div>
+                    <div className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
+                      <h5 className="text-xl font-bold text-slate-800 mb-3">Multi-modal Check</h5>
+                      <p className="text-slate-500">Verification of images and videos using computer vision to detect deepfakes and manipulated media.</p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Technical Architecture */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl">
+                      <Cpu className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-3xl font-black text-slate-800">Technical Architecture</h4>
+                  </div>
+                  <div className="bg-indigo-900 text-white p-10 rounded-[3rem] shadow-xl relative overflow-hidden">
+                    <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                      <div className="space-y-4">
+                        <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-md">Data Ingestion</div>
+                        <div className="text-indigo-200 text-sm">Social Media APIs, Web Scrapers, User Submissions</div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-md border border-white/30">AI Engine</div>
+                        <div className="text-indigo-200 text-sm">Gemini 1.5 Pro, BERT for NLP, Custom ML Classifiers</div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="bg-white/10 p-4 rounded-2xl backdrop-blur-md">Output Layer</div>
+                        <div className="text-indigo-200 text-sm">Mobile App, Browser Extension, API for Platforms</div>
+                      </div>
+                    </div>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                  </div>
+                </section>
+
+                {/* Technology Stack */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl">
+                      <Key className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-3xl font-black text-slate-800">Technology Stack</h4>
+                  </div>
+                  <div className="flex flex-wrap gap-4">
+                    {['React Native', 'TypeScript', 'Node.js', 'Google Gemini API', 'Firebase', 'Python (Scikit-Learn)', 'Tailwind CSS'].map((tech, i) => (
+                      <span key={i} className="px-6 py-3 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 shadow-sm">{tech}</span>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Implementation Strategy */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl">
+                      <Gavel className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-3xl font-black text-slate-800">Implementation Strategy</h4>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex gap-6 items-start">
+                      <div className="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-black flex-shrink-0">1</div>
+                      <div>
+                        <h5 className="text-xl font-bold text-slate-800">Phase 1: Data Collection</h5>
+                        <p className="text-slate-500">Aggregating datasets of verified news and known misinformation from Indian contexts.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-6 items-start">
+                      <div className="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-black flex-shrink-0">2</div>
+                      <div>
+                        <h5 className="text-xl font-bold text-slate-800">Phase 2: Model Training</h5>
+                        <p className="text-slate-500">Fine-tuning LLMs to recognize linguistic patterns of fake news in English and regional languages.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-6 items-start">
+                      <div className="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center font-black flex-shrink-0">3</div>
+                      <div>
+                        <h5 className="text-xl font-bold text-slate-800">Phase 3: Integration</h5>
+                        <p className="text-slate-500">Launching the browser extension and mobile app for real-time user verification.</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Impact & Scalability */}
+                <section className="bg-indigo-50 p-10 rounded-[3rem] border border-indigo-100">
+                   <h4 className="text-3xl font-black text-indigo-900 mb-6">Expected Impact & Scalability</h4>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-2">
+                        <p className="text-indigo-900 font-black text-xl">Social Impact</p>
+                        <p className="text-indigo-700/80 font-medium">Reduces public panic, prevents financial loss due to scams, and promotes a fact-based digital discourse.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-indigo-900 font-black text-xl">Scalability</p>
+                        <p className="text-indigo-700/80 font-medium">Cloud-native architecture allows handling millions of requests. API-first design enables integration into WhatsApp and Facebook.</p>
+                      </div>
+                   </div>
+                </section>
+
+                {/* Live Demo Trigger */}
+                <section className="text-center pt-8">
+                   <button 
+                    onClick={() => { setCurrentModule(SecurityModule.FEED_DEMO); loadFeed(); }}
+                    className="px-12 py-6 bg-indigo-600 text-white rounded-[2.5rem] font-black text-2xl shadow-xl hover:bg-indigo-700 transition-all flex items-center gap-4 mx-auto"
+                   >
+                     <Sparkles className="w-8 h-8" />
+                     Launch Live Prototype
+                   </button>
+                   <p className="mt-4 text-slate-400 font-bold italic">Experience the AI Detection System in real-time</p>
+                </section>
+              </div>
+            </div>
+          </div>
+        ) : currentModule === SecurityModule.FEED_DEMO ? (
+          <div className="animate-in slide-in-from-bottom-10 duration-500 space-y-10 pb-32">
+            <div className="flex items-center justify-between">
+              <button onClick={() => setCurrentModule(SecurityModule.PITCH_DECK)} className="flex items-center gap-2 text-indigo-600 font-bold hover:underline">
+                <ChevronLeft className="w-5 h-5" /> Back to Pitch Deck
+              </button>
+              <div className="text-right">
+                <h2 className="text-3xl font-black text-slate-800">Live Detection Demo</h2>
+                <p className="text-slate-500 font-bold">Simulated Social Media Feed</p>
+              </div>
+            </div>
+
+            {isFeedLoading ? (
+              <div className="flex flex-col items-center justify-center py-32 space-y-6">
+                <Loader2 className="w-16 h-16 text-indigo-600 animate-spin" />
+                <p className="text-2xl font-black text-slate-400 animate-pulse">Generating Real-time Feed...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {/* Manual Post Input */}
+                <div className="bg-white rounded-[2.5rem] p-8 shadow-md border-2 border-indigo-100">
+                  <h4 className="text-xl font-black text-slate-800 mb-4 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-indigo-600" />
+                    Paste Content to Verify
+                  </h4>
+                  <textarea 
+                    value={feedInput}
+                    onChange={(e) => setFeedInput(e.target.value)}
+                    placeholder="Paste a suspicious message or news article here to see how our AI detects it in a feed context..."
+                    className="w-full h-32 p-6 rounded-2xl border border-slate-100 bg-slate-50 text-lg focus:border-indigo-500 outline-none transition-all mb-4"
+                  />
+                  <button 
+                    onClick={handleManualPost}
+                    disabled={!feedInput.trim()}
+                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-lg hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    Add to Feed for Analysis
+                  </button>
+                </div>
+
+                {feed.map((item) => (
+                  <div key={item.id} className="bg-white rounded-[2.5rem] p-8 shadow-md border border-slate-100 hover:border-indigo-200 transition-all">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 font-black text-xl">
+                          {item.author[0]}
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-black text-slate-800">{item.author}</h4>
+                          <p className="text-sm text-slate-400 font-bold flex items-center gap-1">
+                            {item.platform === 'Twitter' && <Globe className="w-3 h-3" />}
+                            {item.platform === 'WhatsApp' && <MessageSquare className="w-3 h-3" />}
+                            {item.platform} • {item.timestamp}
+                          </p>
+                        </div>
+                      </div>
+                      {!item.analysis && !item.isVerified && (
+                        <button 
+                          onClick={() => verifyFeedItem(item.id)}
+                          className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-2xl font-black text-sm hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
+                        >
+                          Verify Post
+                        </button>
+                      )}
+                    </div>
+                    
+                    <p className="text-2xl text-slate-700 font-medium leading-relaxed mb-8">
+                      {item.content}
+                    </p>
+
+                    {item.isVerified && !item.analysis && (
+                      <div className="flex items-center gap-3 text-indigo-600 font-bold animate-pulse p-4 bg-indigo-50 rounded-2xl">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        AI is analyzing misleading patterns...
+                      </div>
+                    )}
+
+                    {item.analysis && (
+                      <div className={`p-8 rounded-[2rem] border-2 animate-in zoom-in-95 duration-300 ${
+                        item.analysis.riskFactor === RiskLevel.LOW ? 'bg-emerald-50 border-emerald-100' : 
+                        item.analysis.riskFactor === RiskLevel.MEDIUM ? 'bg-amber-50 border-amber-100' : 
+                        'bg-red-50 border-red-100'
+                      }`}>
+                        <div className="flex items-center gap-3 mb-4">
+                          {item.analysis.riskFactor === RiskLevel.LOW ? <CheckCircle2 className="text-emerald-600" /> : <ShieldAlert className="text-red-600" />}
+                          <h5 className="text-xl font-black text-slate-800">{item.analysis.headline}</h5>
+                        </div>
+                        <p className="text-slate-600 font-bold mb-6">{item.analysis.summary}</p>
+                        <div className="flex flex-wrap gap-3">
+                          <span className={`px-4 py-2 rounded-xl font-black text-xs uppercase ${
+                            item.analysis.riskFactor === RiskLevel.LOW ? 'bg-emerald-600 text-white' : 
+                            item.analysis.riskFactor === RiskLevel.MEDIUM ? 'bg-amber-600 text-white' : 
+                            'bg-red-600 text-white'
+                          }`}>
+                            {item.analysis.verdict}
+                          </span>
+                          {item.analysis.sourceCredibility !== undefined && (
+                            <span className="px-4 py-2 bg-white border border-slate-200 rounded-xl font-black text-xs text-slate-500">
+                              Credibility: {item.analysis.sourceCredibility}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                <button 
+                  onClick={loadFeed}
+                  className="w-full py-8 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-slate-400 font-black text-xl hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-3"
+                >
+                  <RefreshCw className="w-6 h-6" />
+                  Refresh Feed with New Content
+                </button>
+              </div>
+            )}
           </div>
         ) : analysisState.result ? (
           <AnalysisView result={analysisState.result} onReset={resetAll} />

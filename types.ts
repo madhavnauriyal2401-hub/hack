@@ -18,7 +18,9 @@ export enum SecurityModule {
   AWARENESS_HUB = 'AWARENESS_HUB',
   ABOUT_US = 'ABOUT_US',
   WHY_US = 'WHY_US',
-  GUIDELINES = 'GUIDELINES'
+  GUIDELINES = 'GUIDELINES',
+  PITCH_DECK = 'PITCH_DECK',
+  FEED_DEMO = 'FEED_DEMO'
 }
 
 export interface GroundingSource {
@@ -31,6 +33,7 @@ export interface AnalysisResult {
   summary: string;
   riskFactor: RiskLevel;
   riskScore: number;
+  sourceCredibility?: number;
   reasons: string[];
   verdict: string;
   careMessage: string;
@@ -41,6 +44,16 @@ export interface AnalysisState {
   isAnalyzing: boolean;
   result: AnalysisResult | null;
   error: string | null;
+}
+
+export interface FeedItem {
+  id: string;
+  author: string;
+  content: string;
+  timestamp: string;
+  platform: 'Twitter' | 'Facebook' | 'WhatsApp';
+  isVerified?: boolean;
+  analysis?: AnalysisResult;
 }
 
 export interface FraudStep {

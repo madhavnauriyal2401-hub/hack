@@ -58,6 +58,23 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ result, onReset }) => {
           }`}>
             {result.verdict}
           </div>
+          
+          {result.sourceCredibility !== undefined && (
+            <div className="mt-6 w-full p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Source Credibility</span>
+                <span className={`text-lg font-black ${result.sourceCredibility > 70 ? 'text-emerald-600' : result.sourceCredibility > 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                  {result.sourceCredibility}%
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-1000 ${result.sourceCredibility > 70 ? 'bg-emerald-500' : result.sourceCredibility > 40 ? 'bg-amber-500' : 'bg-red-500'}`}
+                  style={{ width: `${result.sourceCredibility}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Detailed Points */}

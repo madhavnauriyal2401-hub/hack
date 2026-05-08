@@ -1,12 +1,51 @@
+/// <reference types="vite/client" />
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, SecurityModule } from "../types";
+import { AnalysisResult, SecurityModule, FeedItem } from "../types";
+
+const getApiKey = () => {
+  const key = import.meta.env.VITE_GEMINI_API_KEY || 
+              import.meta.env.VITE_API_KEY || 
+              process.env.API_KEY || 
+              process.env.GEMINI_API_KEY;
+  
+  if (!key) {
+    console.warn("Gemini API Key missing. Please set VITE_GEMINI_API_KEY in your environment.");
+  }
+  return key || "";
+};
+
+export const generateSimulatedFeed = async (): Promise<FeedItem[]> => {
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: "Generate 5 simulated social media posts (Twitter/WhatsApp style) about trending news in India. Mix real news with 2-3 pieces of subtle misinformation or fake news. Return as JSON.",
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            author: { type: Type.STRING },
+            content: { type: Type.STRING },
+            timestamp: { type: Type.STRING },
+            platform: { type: Type.STRING, enum: ["Twitter", "Facebook", "WhatsApp"] }
+          },
+          required: ["id", "author", "content", "timestamp", "platform"]
+        }
+      }
+    }
+  });
+  return JSON.parse(response.text || "[]");
+};
 
 export const analyzeSecurityContent = async (
   module: SecurityModule,
   text?: string,
   imageUrl?: string
 ): Promise<AnalysisResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   
   let systemInstruction = `
     You are "Raksha Sutra," a respectful, caring, and wise digital guardian for Indian elders. 
@@ -74,6 +113,7 @@ export const analyzeSecurityContent = async (
           summary: { type: Type.STRING },
           riskFactor: { type: Type.STRING, enum: ["LOW", "MEDIUM", "HIGH"] },
           riskScore: { type: Type.NUMBER },
+          sourceCredibility: { type: Type.NUMBER, description: "A score from 0 to 100 indicating the reliability of the source." },
           reasons: { type: Type.ARRAY, items: { type: Type.STRING } },
           verdict: { type: Type.STRING },
           careMessage: { type: Type.STRING }
