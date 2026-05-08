@@ -3,8 +3,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, SecurityModule, FeedItem, GroundingSource } from "@/types";
 
 const getApiKey = () => {
-  // Use what's provided by the environment, preferring GEMINI_API_KEY
-  return process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || "";
+  // Prefer user specified MADDY, then default GEMINI_API_KEY
+  return import.meta.env.VITE_MADDY || 
+         import.meta.env.VITE_GEMINI_API_KEY || 
+         (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : "") || 
+         "";
 };
 
 export const generateSimulatedFeed = async (): Promise<FeedItem[]> => {
@@ -68,41 +71,47 @@ export const analyzeSecurityContent = async (
   
   switch (module) {
     case SecurityModule.NEWS:
-      specificTask = "Analyze this news claim for truth. Check for AI manipulation or fake rumors prevalent in India.";
+      specificTask = "Analyze this news claim, article, or video content. Determine if it is a viral rumor, misinformation (fake news), or legitimate news. Pay close attention to topics common in India like celebrity death rumors, child lifter scares, or communal misinformation.";
       break;
     case SecurityModule.EMAIL:
-      specificTask = "Analyze this email for phishing. Look for fake bank warnings or suspicious attachments.";
+      specificTask = "Analyze this email for phishing indices. Check for urgency, suspicious links, poor grammar, and impersonation of banks, income tax departments, or popular services like Netflix or Amazon.";
       break;
     case SecurityModule.SMS:
-      specificTask = "Analyze this SMS/WhatsApp message. Check for fake job offers or prize scams.";
+      specificTask = "Analyze this SMS or WhatsApp message. Look for 'electricity bill' scams, 'Part-time Job' scams, 'KBC' lottery wins, or 'Family Emergency' impersonation tactics used in India.";
       break;
     case SecurityModule.URL:
-      specificTask = "Analyze this link for phishing or malware.";
+      specificTask = "Analyze this website address or link. Use Google Search to check if it has been reported as a phishing site, a retail scam, or if it impersonates a government or banking portal (e.g., sbi-online.com vs official sbi portal).";
       break;
     case SecurityModule.PAYMENT:
-      specificTask = "Analyze this payment request. Is it a QR scam or fake emergency?";
+      specificTask = "Analyze this payment request or scenario. Determine if it is a 'Payment Request' scam (where you are asked to enter a PIN to receive money), an 'Overpayment' scam, or a fraudulent QR code.";
+      break;
+    case SecurityModule.MEETING_LINK:
+      specificTask = "Analyze this invitation link (Zoom, Google Meet, Teams). Check if it's a known vector for tech support scams or credential harvesting.";
+      break;
+    case SecurityModule.JOB_FRAUD:
+      specificTask = "Analyze this job offer. Check if it's a 'Data Entry' scam, requires a registration fee, or uses unprofessional communication common in recruitment scams.";
       break;
     default:
-      specificTask = "Analyze this for digital security risks in the Indian context.";
+      specificTask = "Analyze this content for any digital security risks, particularly those targeting senior citizens in India.";
   }
 
   systemInstruction += `\n\nTask: ${specificTask}
-    If the risk is HIGH, provide a caring message for a senior. Avoid terms like 'Dada'/'Dadi'. 
-    Risk score 0-100. Use Google Search to verify trends.
+    As Raksha Sutra, evaluate the content carefully.
+    If the risk is HIGH, provide a caring, respectful warning. Avoid using 'Dada' or 'Dadi'.
+    Risk score: 0 (Safe) to 100 (Dangerous).
+    Always verify current trends using Google Search.
   `;
 
   const prompt = text 
-    ? `Analyze this: "${text}"`
-    : `Please analyze this image for safety.`;
+    ? `Dear Raksha Sutra, please analyze this for me: "${text}"`
+    : `Dear Raksha Sutra, please look at this image and tell me if it's safe.`;
 
-  const contents: any = { parts: [] };
-  if (text) contents.parts.push({ text: prompt });
+  const contents: any = { parts: [{ text: prompt }] };
   if (imageUrl) {
     const base64Data = imageUrl.split(',')[1];
     contents.parts.push({
       inlineData: { mimeType: 'image/jpeg', data: base64Data }
     });
-    if (!text) contents.parts.push({ text: prompt });
   }
 
   try {
@@ -110,7 +119,7 @@ export const analyzeSecurityContent = async (
       model: "gemini-3-flash-preview",
       contents: contents,
       config: {
-        systemInstruction,
+        systemInstruction: systemInstruction.trim(),
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
@@ -132,19 +141,19 @@ export const analyzeSecurityContent = async (
 
     const outputText = response.text;
     if (!outputText) {
-      throw new Error("No response text from AI.");
+      throw new Error("The digital guardian was unable to provide an analysis. Please try again.");
     }
 
     const jsonResult = JSON.parse(outputText);
     
-    // Improved grounding extraction
+    // Grounding extraction
     let sources: GroundingSource[] = [];
-    const candidate = (response as any).candidates?.[0];
+    const candidate = response.candidates?.[0];
     if (candidate?.groundingMetadata?.groundingChunks) {
       sources = candidate.groundingMetadata.groundingChunks
         .filter((chunk: any) => chunk?.web)
         .map((chunk: any) => ({
-          title: chunk.web.title || "External Source",
+          title: chunk.web.title || "External Verification",
           uri: chunk.web.uri || "#"
         }))
         .slice(0, 3);
@@ -153,9 +162,8 @@ export const analyzeSecurityContent = async (
     return { ...jsonResult, sources };
   } catch (error: any) {
     console.error("Gemini Analysis Failure:", error);
-    // Re-throw with more context if it's an API error
-    if (error?.message?.includes("API key not valid")) {
-      throw new Error("Invalid API Key. Please check your configuration.");
+    if (error?.message?.includes("API key not valid") || error?.message?.includes("invalid API key")) {
+      throw new Error("Invalid API Key: Please check VITE_GEMINI_API_KEY or VITE_MADDY.");
     }
     throw error;
   }

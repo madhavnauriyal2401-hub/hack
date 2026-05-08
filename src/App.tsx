@@ -79,7 +79,7 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error("Analysis Error:", err);
       const errorMessage = err?.message?.includes("API Key") 
-        ? "Access Denied: Please ensure your Gemini API Key is configured correctly in the settings."
+        ? "Access Denied: Please ensure your Gemini API Key (VITE_GEMINI_API_KEY or VITE_MADDY) is configured correctly."
         : "Sorry, I had trouble checking that. The AI service may be temporarily unavailable or the image format is unsupported.";
       setAnalysisState({ isAnalyzing: false, result: null, error: errorMessage });
     }
@@ -151,10 +151,13 @@ const App: React.FC = () => {
 
   const analysisButtons = [
     { id: SecurityModule.NEWS, label: "Verify News", icon: <Newspaper className="w-10 h-10" />, color: "bg-red-600", desc: "Is this viral news real?" },
+    { id: SecurityModule.URL, label: "Check Link", icon: <LinkIcon className="w-10 h-10" />, color: "bg-blue-600", desc: "Is this website safe?" },
+    { id: SecurityModule.SMS, label: "Verify SMS", icon: <MessageSquare className="w-10 h-10" />, color: "bg-indigo-600", desc: "Check WhatsApp/SMS" },
+    { id: SecurityModule.EMAIL, label: "Verify Email", icon: <Mail className="w-10 h-10" />, color: "bg-amber-600", desc: "Check suspicious emails" },
     { id: SecurityModule.PAYMENT, label: "Scan QR/Bill", icon: <CreditCard className="w-10 h-10" />, color: "bg-rose-600", desc: "Is this payment safe?" },
     { id: SecurityModule.MEETING_LINK, label: "Meeting Link", icon: <Video className="w-10 h-10" />, color: "bg-red-800", desc: "Check Zoom/Meet safety" },
     { id: SecurityModule.JOB_FRAUD, label: "Job Offer", icon: <Briefcase className="w-10 h-10" />, color: "bg-slate-700", desc: "Verify work offers" },
-    { id: SecurityModule.PITCH_DECK, label: "Fake News AI", icon: <Sparkles className="w-10 h-10" />, color: "bg-indigo-600", desc: "AI Detection Prototype" },
+    { id: SecurityModule.PITCH_DECK, label: "AI Analysis", icon: <Sparkles className="w-10 h-10" />, color: "bg-indigo-600", desc: "Advanced Verification" },
   ];
 
   return (
