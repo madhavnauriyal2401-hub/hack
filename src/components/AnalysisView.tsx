@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { AnalysisResult, RiskLevel } from '../types';
-import Gauge from './Gauge';
+import { AnalysisResult, RiskLevel } from '@/types';
+import Gauge from '@/components/Gauge';
 import { Heart, AlertCircle, CheckCircle2, ExternalLink, RefreshCw, Info, ShieldAlert, ShieldCheck, Globe } from 'lucide-react';
 
 interface AnalysisViewProps {
