@@ -8,7 +8,7 @@ import {
   MessageSquare, ShieldCheck, ChevronLeft, Upload, Loader2,
   PhoneCall, ExternalLink, Globe, AlertTriangle, ShieldAlert,
   ArrowRight, Info, Eye, BookOpen, AlertOctagon, UserX,
-  Smartphone, Wallet, Lock, HelpCircle, Video, Briefcase,
+  Smartphone, Wallet, Lock, Video, Briefcase,
   Users, Siren, CheckCircle, HelpCircle as HelpIcon,
   Menu, X, Book, Sparkles, Key, Cpu, Shield, Award, Landmark, Gavel,
   Radio, Flame, Megaphone, CheckCircle2, RefreshCw
