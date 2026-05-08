@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { analyzeSecurityContent, generateSimulatedFeed } from '@/services/geminiService';
-import { AnalysisState, SecurityModule, RiskLevel, FraudTypeGuide, FeedItem } from '@/types';
-import AnalysisView from '@/components/AnalysisView';
+import { analyzeSecurityContent, generateSimulatedFeed } from './services/geminiService';
+import { AnalysisState, SecurityModule, RiskLevel, FraudTypeGuide, FeedItem } from './types';
+import AnalysisView from './components/AnalysisView';
 import { 
   Heart, Newspaper, Mail, Link as LinkIcon, CreditCard, 
   MessageSquare, ShieldCheck, ChevronLeft, Upload, Loader2,

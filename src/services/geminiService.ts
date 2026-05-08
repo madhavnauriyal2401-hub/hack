@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, SecurityModule, FeedItem } from "@/types";
+import { AnalysisResult, SecurityModule, FeedItem } from "../types";
 
 const getApiKey = () => {
   // Try everything: VITE_ prefixed (Vite standard), process.env (Vite define), or normal import.meta.env
